@@ -7,6 +7,7 @@
 typedef enum Status {
     WIN,
     LOSE,
+    OK,
     ERROR
 } Status;
 
@@ -24,6 +25,19 @@ typedef struct game {
     cell **board;
 } game;
 
+bool validateLeGame(int rows, int cols, int bombs, bool setup) {
+    if (setup) {
+        if (rows < 2 || cols < 2) {
+            printf("Invalid dimensions, rows and columns must be greater than 2.\n");
+            return false;
+        }
+        if (bombs <= 0) {
+            printf("Why are you playing this game\n");
+            return false;
+        } 
+        return true;
+    }
+}
 
 cell **createBoard(int rows, int cols) {
     if (rows < 2 || cols < 2) {
@@ -104,24 +118,11 @@ void printBoard(game *game) {
         }
         printf("\n");
     }
-}
-
-Status revealCell(game *game, int chosenRow, int chosenCol) {
-    int rows = game->rows;
-    int cols = game->cols;
-    cell **board = game->board;
-    if ((chosenRow < 0 || chosenRow > rows) || (chosenCol < 0 || chosenCol > cols)) {
-        return ERROR;
-    }
-    if (board[chosenRow][chosenCol].isBomb) {
-        return LOSE;
-    } else {
-
-    }
-
+    printf("\n");
 }
 
 void revealEmpty(game *game, int row, int col) {
+    //YO THIS SHIT SUCKS LMAO
     if (row != 0 && col != 0) { //search TL cell
         if (game->board[row-1][col-1].value != 0) { //reveal boundary cells
             game->board[row-1][col-1].revealed = true;
@@ -138,7 +139,7 @@ void revealEmpty(game *game, int row, int col) {
             revealEmpty(game, row-1, col);
         }
     }
-    if (row != 0 && col != game->cols-1) {
+    if (row != 0 && col != game->cols-1) { //search TR cell
         if (game->board[row-1][col+1].value != 0) { //reveal boundary cells
             game->board[row-1][col+1].revealed = true;
         } else if (game->board[row-1][col+1].value == 0 && !game->board[row-1][col+1].revealed) { //recurse through 0-cells
@@ -146,11 +147,123 @@ void revealEmpty(game *game, int row, int col) {
             revealEmpty(game, row-1, col+1);
         }
     }
+    if (col != game->cols-1) { //search right cell
+        if (game->board[row][col+1].value != 0) { //reveal boundary cells
+            game->board[row][col+1].revealed = true;
+        } else if (game->board[row][col+1].value == 0 && !game->board[row][col+1].revealed) { //recurse through 0-cells
+            game->board[row][col+1].revealed = true;
+            revealEmpty(game, row, col+1);
+        }
+    }
+    if (row != game->rows-1 && col != game->cols-1) { //search BR cell
+        if (game->board[row+1][col+1].value != 0) { //reveal boundary cells
+            game->board[row+1][col+1].revealed = true;
+        } else if (game->board[row+1][col+1].value == 0 && !game->board[row+1][col+1].revealed) { //recurse through 0-cells
+            game->board[row+1][col+1].revealed = true;
+            revealEmpty(game, row+1, col+1);
+        }
+    }
+    if (row != game->rows-1) { //search bottom cell
+        if (game->board[row+1][col].value != 0) { //reveal boundary cells
+            game->board[row+1][col].revealed = true;
+        } else if (game->board[row+1][col].value == 0 && !game->board[row+1][col].revealed) { //recurse through 0-cells
+            game->board[row+1][col].revealed = true;
+            revealEmpty(game, row+1, col);
+        }
+    }
+    if (row != game->rows-1 && col != 0) { //search BL cell
+        if (game->board[row+1][col-1].value != 0) { //reveal boundary cells
+            game->board[row+1][col-1].revealed = true;
+        } else if (game->board[row+1][col-1].value == 0 && !game->board[row+1][col-1].revealed) { //recurse through 0-cells
+            game->board[row+1][col-1].revealed = true;
+            revealEmpty(game, row+1, col-1);
+        }
+    }
+    if (col != 0) { //search left cell
+        if (game->board[row][col-1].value != 0) { //reveal boundary cells
+            game->board[row][col-1].revealed = true;
+        } else if (game->board[row][col-1].value == 0 && !game->board[row][col-1].revealed) { //recurse through 0-cells
+            game->board[row][col-1].revealed = true;
+            revealEmpty(game, row, col-1);
+        }
+    }
 } 
+
+Status revealCell(game *game, int chosenRow, int chosenCol) {
+    int rows = game->rows;
+    int cols = game->cols;
+    cell **board = game->board;
+    if ((chosenRow < 0 || chosenRow > rows) || (chosenCol < 0 || chosenCol > cols)) {
+        return ERROR;
+    }
+    if (board[chosenRow][chosenCol].isBomb) {
+        return LOSE;
+    } else {
+        if (board[chosenRow][chosenCol].value == 0) {
+            board[chosenRow][chosenCol].revealed = true;
+            revealEmpty(game, chosenRow, chosenCol);
+        } else {
+            board[chosenRow][chosenCol].revealed = true;
+        }
+        return OK;
+    }
+}
+
+void gameLoop(game *game) {
+    while (true) {
+        printBoard(game);
+        for (int i = 0; i < game->rows; i++) printf("-");
+        printf("\n");
+        bool valid = false;
+        int row, col;
+        while (!valid) {
+            printf("Row?\n");
+            row = 0;
+            scanf("%d", &row);
+            printf("Column?\n");
+            col = 0;
+            scanf("%d", &col);
+            if (row < 0 || row > game->rows || col < 0 || col > game->cols || game->board[row][col].revealed) {
+                printf("Invalid cell\n");
+            } else {
+                valid = true;
+            }
+        }
+        Status status = revealCell(game, row, col);
+    }
+}
+
+void userMenu() {
+    printf("MINESWEEPER\n");
+    printf("By Epic Tinron Chan...");
+    printf("----------------------");
+    bool valid = false;
+    int rows, cols, bombs;
+    while (!valid) {
+        printf("How many rows?\n");
+        rows = 0;
+        scanf("%d", &rows);
+        printf("How many columns?\n");
+        cols = 0;
+        scanf("%d", &cols);
+        printf("How many bombs?\n");
+        bombs = 0;
+        scanf("%d", &bombs);
+        if (validateLeGame(rows, cols, bombs, true)) {
+            valid = true;
+        } else {
+            printf("Error: \n");
+        }
+    }
+    game *game = initialiseGame(rows, cols, bombs);
+}
 
 int main() {
     srand(time(NULL));
     game *game = initialiseGame(10, 10, 10);
+    printBoard(game);
+    revealCell(game, 3, 5);
+    printf("----------------------------------\n");
     printBoard(game);
     return 0;
 }
