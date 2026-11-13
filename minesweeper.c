@@ -232,9 +232,8 @@ void gameLoop(game *game) {
             printf("2. Flag Cell\n");
             scanf("%d", &choice);
             if (choice == 1 || choice == 2) {
-                printf("Flagging mode\n");
                 valid = true;
-                if (choice == 2) flagMode = true;
+                if (choice == 2) printf("Flagging mode\n"); flagMode = true;
             }
         }
         valid = false;
