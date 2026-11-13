@@ -5,7 +5,6 @@
 #include <time.h>
 
 typedef enum Status {
-    WIN,
     LOSE,
     OK,
     ERROR
@@ -25,18 +24,16 @@ typedef struct game {
     cell **board;
 } game;
 
-bool validateLeGame(int rows, int cols, int bombs, bool setup) {
-    if (setup) {
-        if (rows < 2 || cols < 2) {
-            printf("Invalid dimensions, rows and columns must be greater than 2.\n");
-            return false;
-        }
-        if (bombs <= 0) {
-            printf("Why are you playing this game\n");
-            return false;
-        } 
-        return true;
+bool validateLeGame(int rows, int cols, int bombs) {
+    if (rows < 2 || cols < 2) {
+        printf("Invalid dimensions, rows and columns must be greater than 2.\n");
+        return false;
     }
+    if (bombs <= 0 || bombs > rows * cols) {
+        printf("Invalid bomb count.\n");
+        return false;
+    } 
+    return true;
 }
 
 cell **createBoard(int rows, int cols) {
@@ -100,17 +97,16 @@ void printBoard(game *game) {
     cell **board = game->board;
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
-            if (board[i][j].revealed) {
+            if (board[i][j].flagged) {
+                printf("[F]");
+            }
+            else if (board[i][j].revealed) {
                 if (board[i][j].isBomb) {
                     printf("[X]");
-                } else if (board[i][j].flagged) {
-                    printf("[F]");
+                } else if (board[i][j].value < 1) {
+                    printf("[ ]");
                 } else {
-                    if (board[i][j].value < 1) {
-                        printf("[ ]");
-                    } else {
-                        printf("[%d]", board[i][j].value);
-                    }
+                    printf("[%d]", board[i][j].value);
                 }
             } else {
                 printf("[#]");
@@ -122,7 +118,6 @@ void printBoard(game *game) {
 }
 
 void revealEmpty(game *game, int row, int col) {
-    //YO THIS SHIT SUCKS LMAO
     if (row != 0 && col != 0) { //search TL cell
         if (game->board[row-1][col-1].value != 0) { //reveal boundary cells
             game->board[row-1][col-1].revealed = true;
@@ -193,7 +188,7 @@ Status revealCell(game *game, int chosenRow, int chosenCol) {
     int rows = game->rows;
     int cols = game->cols;
     cell **board = game->board;
-    if ((chosenRow < 0 || chosenRow > rows) || (chosenCol < 0 || chosenCol > cols)) {
+    if ((chosenRow < 0 || chosenRow >= rows) || (chosenCol < 0 || chosenCol >= cols)) {
         return ERROR;
     }
     if (board[chosenRow][chosenCol].isBomb) {
@@ -209,34 +204,84 @@ Status revealCell(game *game, int chosenRow, int chosenCol) {
     }
 }
 
+bool checkFlagged(game *game) {
+    int bombCount = 0;
+    for (int i = 0; i < game->rows; i++) {
+        for (int j = 0; j < game->cols; j++) {
+            if (game->board[i][j].flagged && game->board[i][j].isBomb) {
+                bombCount += 1;
+            }
+        }
+    }
+    return (bombCount == game->bombs);
+}
+
 void gameLoop(game *game) {
+    int flaggedCells = 0;
     while (true) {
         printBoard(game);
         for (int i = 0; i < game->rows; i++) printf("-");
         printf("\n");
+        printf("<Flagged cells: %d | Bomb count: %d>\n", flaggedCells, game->bombs);
         bool valid = false;
+        bool flagMode = false;
+        int choice = 0;
+        while (!valid) {
+            printf("Options:\n");
+            printf("1. Reveal Cell\n");
+            printf("2. Flag Cell\n");
+            scanf("%d", &choice);
+            if (choice == 1 || choice == 2) {
+                printf("Flagging mode\n");
+                valid = true;
+                if (choice == 2) flagMode = true;
+            }
+        }
+        valid = false;
         int row, col;
         while (!valid) {
             printf("Row?\n");
             row = 0;
             scanf("%d", &row);
+            row -= 1;
             printf("Column?\n");
             col = 0;
             scanf("%d", &col);
-            if (row < 0 || row > game->rows || col < 0 || col > game->cols || game->board[row][col].revealed) {
+            col -=1;
+            if (row < 0 || row >= game->rows || col < 0 || col >= game->cols || game->board[row][col].revealed) {
                 printf("Invalid cell\n");
             } else {
                 valid = true;
             }
         }
-        Status status = revealCell(game, row, col);
+        if (flagMode) {
+            if (game->board[row][col].flagged){
+                game->board[row][col].flagged = false;
+                flaggedCells -= 1;
+            } else {
+                game->board[row][col].flagged = true;
+                flaggedCells += 1;
+            }
+            if (checkFlagged(game)) {
+                printBoard(game);
+                printf("You win!\n");
+                return;
+            }
+        } else {
+            Status status = revealCell(game, row, col);
+            if (status == LOSE) {
+                printBoard(game);
+                printf("You lose!\n");
+                return;
+            }
+        }
     }
 }
 
 void userMenu() {
     printf("MINESWEEPER\n");
-    printf("By Epic Tinron Chan...");
-    printf("----------------------");
+    printf("By Epic Tinron Chan...\n");
+    printf("----------------------\n");
     bool valid = false;
     int rows, cols, bombs;
     while (!valid) {
@@ -249,21 +294,18 @@ void userMenu() {
         printf("How many bombs?\n");
         bombs = 0;
         scanf("%d", &bombs);
-        if (validateLeGame(rows, cols, bombs, true)) {
+        if (validateLeGame(rows, cols, bombs)) {
             valid = true;
         } else {
             printf("Error: \n");
         }
     }
     game *game = initialiseGame(rows, cols, bombs);
+    gameLoop(game);
 }
 
 int main() {
     srand(time(NULL));
-    game *game = initialiseGame(10, 10, 10);
-    printBoard(game);
-    revealCell(game, 3, 5);
-    printf("----------------------------------\n");
-    printBoard(game);
+    userMenu();
     return 0;
 }
