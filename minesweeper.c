@@ -96,23 +96,28 @@ void printBoard(game *game) {
     int cols = game->cols;
     cell **board = game->board;
     for (int i = 0; i < rows; i++) {
+        printf("%2d ", i+1);
         for (int j = 0; j < cols; j++) {
             if (board[i][j].flagged) {
-                printf("[F]");
+                printf("[F] ");
             }
             else if (board[i][j].revealed) {
                 if (board[i][j].isBomb) {
-                    printf("[X]");
+                    printf("[X] ");
                 } else if (board[i][j].value < 1) {
-                    printf("[ ]");
+                    printf("[ ] ");
                 } else {
-                    printf("[%d]", board[i][j].value);
+                    printf("[%d] ", board[i][j].value);
                 }
             } else {
-                printf("[#]");
+                printf("[#] ");
             }
         }
         printf("\n");
+    }
+    printf("  ");
+    for (int i = 0; i < cols; i++) {
+        printf("%3d ", i+1);
     }
     printf("\n");
 }
@@ -206,14 +211,27 @@ Status revealCell(game *game, int chosenRow, int chosenCol) {
 
 bool checkFlagged(game *game) {
     int bombCount = 0;
+    int flagCount = 0;
     for (int i = 0; i < game->rows; i++) {
         for (int j = 0; j < game->cols; j++) {
-            if (game->board[i][j].flagged && game->board[i][j].isBomb) {
-                bombCount += 1;
+            if (game->board[i][j].flagged) {
+                flagCount++;
+                if (game->board[i][j].isBomb) {
+                    bombCount++;
+                }
             }
         }
     }
-    return (bombCount == game->bombs);
+    return (bombCount == game->bombs && flagCount == game->bombs);
+}
+
+void freeGame(game *game) {
+    for (int i = 0; i < game->rows; i++) {
+        free(game->board[i]);
+    }
+    free(game->board);
+    free(game);
+    printf("Game freed\n");
 }
 
 void gameLoop(game *game) {
@@ -233,7 +251,10 @@ void gameLoop(game *game) {
             scanf("%d", &choice);
             if (choice == 1 || choice == 2) {
                 valid = true;
-                if (choice == 2) printf("Flagging mode\n"); flagMode = true;
+                if (choice == 2) {
+                    printf("Flagging mode\n");
+                    flagMode = true; 
+                }
             }
         }
         valid = false;
@@ -282,25 +303,46 @@ void userMenu() {
     printf("By Epic Tinron Chan...\n");
     printf("----------------------\n");
     bool valid = false;
-    int rows, cols, bombs;
-    while (!valid) {
-        printf("How many rows?\n");
-        rows = 0;
-        scanf("%d", &rows);
-        printf("How many columns?\n");
-        cols = 0;
-        scanf("%d", &cols);
-        printf("How many bombs?\n");
-        bombs = 0;
-        scanf("%d", &bombs);
-        if (validateLeGame(rows, cols, bombs)) {
-            valid = true;
-        } else {
-            printf("Error: \n");
+    while (true) {
+        valid = false;
+        int rows, cols, bombs;
+        while (!valid) {
+            printf("How many rows?\n");
+            rows = 0;
+            scanf("%d", &rows);
+            printf("How many columns?\n");
+            cols = 0;
+            scanf("%d", &cols);
+            printf("How many bombs?\n");
+            bombs = 0;
+            scanf("%d", &bombs);
+            if (validateLeGame(rows, cols, bombs)) {
+                valid = true;
+            } else {
+                printf("Error: \n");
+            }
+        }
+        game *game = initialiseGame(rows, cols, bombs);
+        gameLoop(game);
+        valid = false;
+        while (!valid) {
+            printf("Options:\n");
+            printf("1. Replay\n");
+            printf("2. Quit\n");
+            int choice = 0;
+            scanf("%d", &choice);
+            if (choice != 1 && choice != 2) {
+                printf("Invalid option\n");
+            } else {
+                if (choice == 2) {
+                    printf("Thanks for playing\n");
+                    freeGame(game);
+                    exit(0);
+                }
+                freeGame(game);
+            }
         }
     }
-    game *game = initialiseGame(rows, cols, bombs);
-    gameLoop(game);
 }
 
 int main() {
