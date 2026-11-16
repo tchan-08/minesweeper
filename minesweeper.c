@@ -256,9 +256,37 @@ void freeGame(game *game) {
     printf("Game freed\n");
 }
 
+void saveResult(char name[], long time, int rows, int cols) {
+    FILE *file;
+    file = fopen("records.txt", "a");
+    fprintf(file, "%s: %ld seconds on %d x %d\n", name, time, rows, cols);
+    fclose(file);
+}
+
+bool viewResults() {
+    FILE *file;
+    file = fopen("records.txt", "r");
+    if (file == NULL) {
+        fclose(file);
+        return false;
+    }
+    char buf[100];
+    int recordIndex = 1;
+    while (fgets(buf, sizeof(buf), file)) {
+        printf("==============================\n");
+        printf("%d: ", recordIndex);
+        printf("%s", buf);
+        recordIndex++;
+    }
+    printf("==============================\n");
+    fclose(file);
+    return true;
+}
+
 void gameLoop(game *game) {
     int flaggedCells = 0;
     while (true) {
+        time_t start = time(NULL); //start timer
         printBoard(game);
         for (int i = 0; i < game->rows; i++) printf("-");
         printf("\n");
@@ -306,7 +334,31 @@ void gameLoop(game *game) {
             }
             if (checkFlagged(game)) {
                 printBoard(game);
+                time_t time_taken = time(NULL) - start;
                 printf("You win!\n");
+                printf("You took %ld seconds to beat a %d x %d board\n", time_taken, game->rows, game->cols);
+                printf("Options:\n");
+                printf("1. Save record\n");
+                printf("2. Continue\n");
+                valid = false;
+                while (!valid) {
+                    fgets(buf, sizeof(buf), stdin);
+                    choice = strtol(buf, NULL, 10);
+                    switch (choice) {
+                        case 1:
+                            printf("Enter name:\n");
+                            fgets(buf, sizeof(buf), stdin);
+                            buf[strcspn(buf, "\n")] = '\0';
+                            saveResult(buf, time_taken, game->rows, game->cols);
+                            valid = true;
+                            break;
+                        case 2:
+                            return;
+                        default:
+                            printf("Invalid input\n");
+                    }       
+                }
+
                 return;
             }
         } else {
@@ -351,19 +403,28 @@ void userMenu() {
         while (!valid) {
             printf("Options:\n");
             printf("1. Replay\n");
-            printf("2. Quit\n");
+            printf("2. View records\n");
+            printf("3. Quit\n");
             fgets(buf, sizeof(buf), stdin);
             int choice = strtol(buf, NULL, 10);
-            if (choice != 1 && choice != 2) {
-                printf("Invalid option\n");
-            } else {
-                if (choice == 2) {
+            bool status = false;
+            switch (choice) {
+                case 1:
+                    valid = true;
+                    freeGame(game);
+                    break;
+                case 2:
+                    status = viewResults();
+                    if (!status) {
+                        printf("No records exist\n");
+                        break;
+                    }
+                case 3:
                     printf("Thanks for playing\n");
                     freeGame(game);
                     exit(0);
-                }
-                valid = true;
-                freeGame(game);
+                default:
+                    printf("Invalid choice\n");
             }
         }
     }
