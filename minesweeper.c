@@ -95,8 +95,13 @@ void printBoard(game *game) {
     int rows = game->rows;
     int cols = game->cols;
     cell **board = game->board;
+    printf("  ");
+    for (int i = 0; i < cols; i++) {
+        printf("%3d ", i+1);
+    }
+    printf("\n");
     for (int i = 0; i < rows; i++) {
-        printf("%2d ", i+1);
+        printf("%2d ", rows-i);
         for (int j = 0; j < cols; j++) {
             if (board[i][j].flagged) {
                 printf("[F] ");
@@ -113,6 +118,7 @@ void printBoard(game *game) {
                 printf("[#] ");
             }
         }
+        printf("%d", rows-i);
         printf("\n");
     }
     printf("  ");
@@ -124,67 +130,83 @@ void printBoard(game *game) {
 
 void revealEmpty(game *game, int row, int col) {
     if (row != 0 && col != 0) { //search TL cell
-        if (game->board[row-1][col-1].value != 0) { //reveal boundary cells
-            game->board[row-1][col-1].revealed = true;
-        } else if (game->board[row-1][col-1].value == 0 && !game->board[row-1][col-1].revealed) { //recurse through 0-cells
-            game->board[row-1][col-1].revealed = true;
-            revealEmpty(game, row-1, col-1);
+        if (!game->board[row-1][col-1].isBomb) {
+            if (game->board[row-1][col-1].value != 0) { //reveal boundary cells
+                game->board[row-1][col-1].revealed = true;
+            } else if (game->board[row-1][col-1].value == 0 && !game->board[row-1][col-1].revealed) { //recurse through 0-cells
+                game->board[row-1][col-1].revealed = true;
+                revealEmpty(game, row-1, col-1);
+            }
         }
     }
     if (row != 0) { //search cell above
-        if (game->board[row-1][col].value != 0) { //reveal boundary cells
-            game->board[row-1][col].revealed = true;
-        } else if (game->board[row-1][col].value == 0 && !game->board[row-1][col].revealed) { //recurse through 0-cells
-            game->board[row-1][col].revealed = true;
-            revealEmpty(game, row-1, col);
+        if (!game->board[row-1][col].isBomb) {
+            if (game->board[row-1][col].value != 0) { //reveal boundary cells
+                game->board[row-1][col].revealed = true;
+            } else if (game->board[row-1][col].value == 0 && !game->board[row-1][col].revealed) { //recurse through 0-cells
+                game->board[row-1][col].revealed = true;
+                revealEmpty(game, row-1, col);
+            }
         }
     }
     if (row != 0 && col != game->cols-1) { //search TR cell
-        if (game->board[row-1][col+1].value != 0) { //reveal boundary cells
-            game->board[row-1][col+1].revealed = true;
-        } else if (game->board[row-1][col+1].value == 0 && !game->board[row-1][col+1].revealed) { //recurse through 0-cells
-            game->board[row-1][col+1].revealed = true;
-            revealEmpty(game, row-1, col+1);
+        if (!game->board[row-1][col+1].isBomb) {
+            if (game->board[row-1][col+1].value != 0) { //reveal boundary cells
+                game->board[row-1][col+1].revealed = true;
+            } else if (game->board[row-1][col+1].value == 0 && !game->board[row-1][col+1].revealed) { //recurse through 0-cells
+                game->board[row-1][col+1].revealed = true;
+                revealEmpty(game, row-1, col+1);
+            }
         }
     }
     if (col != game->cols-1) { //search right cell
-        if (game->board[row][col+1].value != 0) { //reveal boundary cells
-            game->board[row][col+1].revealed = true;
-        } else if (game->board[row][col+1].value == 0 && !game->board[row][col+1].revealed) { //recurse through 0-cells
-            game->board[row][col+1].revealed = true;
-            revealEmpty(game, row, col+1);
+        if (!game->board[row][col+1].isBomb) {
+            if (game->board[row][col+1].value != 0) { //reveal boundary cells
+                game->board[row][col+1].revealed = true;
+            } else if (game->board[row][col+1].value == 0 && !game->board[row][col+1].revealed) { //recurse through 0-cells
+                game->board[row][col+1].revealed = true;
+                revealEmpty(game, row, col+1);
+            }
         }
     }
     if (row != game->rows-1 && col != game->cols-1) { //search BR cell
-        if (game->board[row+1][col+1].value != 0) { //reveal boundary cells
-            game->board[row+1][col+1].revealed = true;
-        } else if (game->board[row+1][col+1].value == 0 && !game->board[row+1][col+1].revealed) { //recurse through 0-cells
-            game->board[row+1][col+1].revealed = true;
-            revealEmpty(game, row+1, col+1);
+        if (!game->board[row+1][col+1].isBomb) {
+            if (game->board[row+1][col+1].value != 0) { //reveal boundary cells
+                game->board[row+1][col+1].revealed = true;
+            } else if (game->board[row+1][col+1].value == 0 && !game->board[row+1][col+1].revealed) { //recurse through 0-cells
+                game->board[row+1][col+1].revealed = true;
+                revealEmpty(game, row+1, col+1);
+            }
         }
     }
     if (row != game->rows-1) { //search bottom cell
-        if (game->board[row+1][col].value != 0) { //reveal boundary cells
-            game->board[row+1][col].revealed = true;
-        } else if (game->board[row+1][col].value == 0 && !game->board[row+1][col].revealed) { //recurse through 0-cells
-            game->board[row+1][col].revealed = true;
-            revealEmpty(game, row+1, col);
+        if (!game->board[row+1][col].isBomb) {
+            if (game->board[row+1][col].value != 0) { //reveal boundary cells
+                game->board[row+1][col].revealed = true;
+            } else if (game->board[row+1][col].value == 0 && !game->board[row+1][col].revealed) { //recurse through 0-cells
+                game->board[row+1][col].revealed = true;
+                revealEmpty(game, row+1, col);
+            }
         }
     }
     if (row != game->rows-1 && col != 0) { //search BL cell
-        if (game->board[row+1][col-1].value != 0) { //reveal boundary cells
-            game->board[row+1][col-1].revealed = true;
-        } else if (game->board[row+1][col-1].value == 0 && !game->board[row+1][col-1].revealed) { //recurse through 0-cells
-            game->board[row+1][col-1].revealed = true;
-            revealEmpty(game, row+1, col-1);
+        if (!game->board[row+1][col-1].isBomb) {
+            if (game->board[row+1][col-1].value != 0) { //reveal boundary cells
+                game->board[row+1][col-1].revealed = true;
+            } else if (game->board[row+1][col-1].value == 0 && !game->board[row+1][col-1].revealed) { //recurse through 0-cells
+                game->board[row+1][col-1].revealed = true;
+                revealEmpty(game, row+1, col-1);
+            }
         }
     }
     if (col != 0) { //search left cell
-        if (game->board[row][col-1].value != 0) { //reveal boundary cells
-            game->board[row][col-1].revealed = true;
-        } else if (game->board[row][col-1].value == 0 && !game->board[row][col-1].revealed) { //recurse through 0-cells
-            game->board[row][col-1].revealed = true;
-            revealEmpty(game, row, col-1);
+        if (!game->board[row][col-1].isBomb) {
+            if (game->board[row][col-1].value != 0) { //reveal boundary cells
+                game->board[row][col-1].revealed = true;
+            } else if (game->board[row][col-1].value == 0 && !game->board[row][col-1].revealed) { //recurse through 0-cells
+                game->board[row][col-1].revealed = true;
+                revealEmpty(game, row, col-1);
+            }
         }
     }
 } 
@@ -244,11 +266,13 @@ void gameLoop(game *game) {
         bool valid = false;
         bool flagMode = false;
         int choice = 0;
+        char buf[100];
         while (!valid) {
             printf("Options:\n");
             printf("1. Reveal Cell\n");
             printf("2. Flag Cell\n");
-            scanf("%d", &choice);
+            fgets(buf, sizeof(buf), stdin);
+            choice = strtol(buf, NULL, 10);
             if (choice == 1 || choice == 2) {
                 valid = true;
                 if (choice == 2) {
@@ -261,13 +285,11 @@ void gameLoop(game *game) {
         int row, col;
         while (!valid) {
             printf("Row?\n");
-            row = 0;
-            scanf("%d", &row);
-            row -= 1;
+            fgets(buf, sizeof(buf), stdin);
+            row = game->rows - strtol(buf, NULL, 10);
             printf("Column?\n");
-            col = 0;
-            scanf("%d", &col);
-            col -=1;
+            fgets(buf, sizeof(buf), stdin);
+            col = strtol(buf, NULL, 10) - 1;
             if (row < 0 || row >= game->rows || col < 0 || col >= game->cols || game->board[row][col].revealed) {
                 printf("Invalid cell\n");
             } else {
@@ -306,16 +328,17 @@ void userMenu() {
     while (true) {
         valid = false;
         int rows, cols, bombs;
+        char buf[100];
         while (!valid) {
             printf("How many rows?\n");
-            rows = 0;
-            scanf("%d", &rows);
+            fgets(buf, sizeof(buf), stdin);
+            rows = strtol(buf, NULL, 10);
             printf("How many columns?\n");
-            cols = 0;
-            scanf("%d", &cols);
+            fgets(buf, sizeof(buf), stdin);
+            cols = strtol(buf, NULL, 10);
             printf("How many bombs?\n");
-            bombs = 0;
-            scanf("%d", &bombs);
+            fgets(buf, sizeof(buf), stdin);
+            bombs = strtol(buf, NULL, 10);
             if (validateLeGame(rows, cols, bombs)) {
                 valid = true;
             } else {
@@ -329,8 +352,8 @@ void userMenu() {
             printf("Options:\n");
             printf("1. Replay\n");
             printf("2. Quit\n");
-            int choice = 0;
-            scanf("%d", &choice);
+            fgets(buf, sizeof(buf), stdin);
+            int choice = strtol(buf, NULL, 10);
             if (choice != 1 && choice != 2) {
                 printf("Invalid option\n");
             } else {
@@ -339,6 +362,7 @@ void userMenu() {
                     freeGame(game);
                     exit(0);
                 }
+                valid = true;
                 freeGame(game);
             }
         }
